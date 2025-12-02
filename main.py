@@ -26,9 +26,25 @@ def run_pipeline(
     if not os.path.isabs(output_video_path):
         output_video_path = str(PROJECT_ROOT / output_video_path)
 
+    # Validate input video exists
+    if not os.path.exists(input_video_path):
+        raise FileNotFoundError(f"Input video not found: {input_video_path}")
+
+    # Ensure output directory exists
+    output_dir = os.path.dirname(output_video_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
     video_frames = read_video(input_video_path)
+    if not video_frames or len(video_frames) == 0:
+        raise ValueError(f"No frames could be read from video: {input_video_path}")
 
     model_path = str(PROJECT_ROOT / 'models/weights/best.pt')
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"Model file not found: {model_path}. "
+            f"Please ensure the model file is in the repository."
+        )
     tracker = Tracker(model_path)
     stub_path = str(PROJECT_ROOT / 'stubs/track_stubs.pkl')
     tracks = tracker.get_object_tracks(

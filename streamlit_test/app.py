@@ -155,6 +155,19 @@ def run_streamlit_app():
                         except Exception:
                             pass
                             
+                except FileNotFoundError as e:
+                    # Clean up temp files
+                    for temp_file in [input_path, output_path]:
+                        if os.path.exists(temp_file):
+                            try:
+                                os.remove(temp_file)
+                                if temp_file in st.session_state.temp_files:
+                                    st.session_state.temp_files.remove(temp_file)
+                            except Exception:
+                                pass
+                    st.error(f"❌ File not found: {e}")
+                    st.info("💡 This usually means a model file or required resource is missing. Please check that all model files are in the repository.")
+                    return
                 except Exception as e:
                     # Clean up temp files even if there's an error
                     for temp_file in [input_path, output_path]:
@@ -169,8 +182,9 @@ def run_streamlit_app():
                     # Show detailed error information
                     import traceback
                     error_details = traceback.format_exc()
-                    st.error(f"Error while running pipeline: {e}")
-                    with st.expander("Error details (click to expand)"):
+                    st.error(f"❌ Error while running pipeline: {str(e)}")
+                    st.info("💡 Expand the error details below to see the full traceback for debugging.")
+                    with st.expander("🔍 Error details (click to expand)", expanded=False):
                         st.code(error_details, language="python")
                     return
 
