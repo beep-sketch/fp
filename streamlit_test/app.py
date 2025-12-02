@@ -80,7 +80,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from main import run_pipeline
+# Import main with error handling
+try:
+    from main import run_pipeline
+except Exception as e:
+    import traceback
+    import streamlit as st
+    st.error(f"❌ Failed to import pipeline module: {str(e)}")
+    st.info("💡 This error occurred while loading the application. Check the details below.")
+    with st.expander("🔍 Full error traceback", expanded=True):
+        st.code(traceback.format_exc(), language="python")
+    st.stop()
 
 
 def run_streamlit_app():
@@ -207,5 +217,13 @@ def run_streamlit_app():
                     st.warning("Output video was not found. Please check the logs.")
 
 
-if __name__ == "__main__":
+# Always run the app (Streamlit calls this automatically)
+try:
     run_streamlit_app()
+except Exception as e:
+    import traceback
+    st.error(f"❌ Fatal error in app: {str(e)}")
+    st.info("💡 This error occurred during app execution. Check the details below.")
+    with st.expander("🔍 Full error traceback", expanded=True):
+        st.code(traceback.format_exc(), language="python")
+    st.stop()
