@@ -138,7 +138,13 @@ def run_streamlit_app():
                                     st.session_state.temp_files.remove(temp_file)
                             except Exception:
                                 pass
+                    
+                    # Show detailed error information
+                    import traceback
+                    error_details = traceback.format_exc()
                     st.error(f"Error while running pipeline: {e}")
+                    with st.expander("Error details (click to expand)"):
+                        st.code(error_details, language="python")
                     return
 
                 st.success("Processing complete!")
