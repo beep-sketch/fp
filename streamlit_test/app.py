@@ -1,11 +1,50 @@
-# CRITICAL: Import opencv_fix FIRST to ensure headless version is used
-# This must happen before any other imports that might use cv2
-import opencv_fix  # noqa: F401
-
 import os
 import sys
 import tempfile
+import subprocess
 from pathlib import Path
+
+# CRITICAL FIX for Streamlit Cloud: Ensure opencv-python-headless is used
+# This must happen BEFORE any cv2 imports to prevent libGL.so.1 errors
+if 'cv2' in sys.modules:
+    del sys.modules['cv2']
+
+# Try to uninstall opencv-python if it exists (it conflicts with headless version)
+try:
+    result = subprocess.run(
+        [sys.executable, '-m', 'pip', 'uninstall', '-y', 'opencv-python', '--quiet'],
+        capture_output=True,
+        timeout=10,
+        check=False
+    )
+    if result.returncode == 0 and 'cv2' in sys.modules:
+        del sys.modules['cv2']
+except Exception:
+    pass  # Ignore errors, continue
+
+# Install import hook to intercept cv2 imports and ensure headless version
+class OpenCVImportHook:
+    """Import hook to ensure opencv-python-headless is used instead of opencv-python."""
+    
+    def find_spec(self, name, path, target=None):
+        if name == 'cv2':
+            # Clear cv2 from sys.modules to force reimport
+            if 'cv2' in sys.modules:
+                del sys.modules['cv2']
+            # Try to uninstall opencv-python one more time
+            try:
+                subprocess.run(
+                    [sys.executable, '-m', 'pip', 'uninstall', '-y', 'opencv-python', '--quiet'],
+                    capture_output=True,
+                    timeout=5,
+                    check=False
+                )
+            except Exception:
+                pass
+        return None
+
+# Register the import hook
+sys.meta_path.insert(0, OpenCVImportHook())
 
 import streamlit as st
 
