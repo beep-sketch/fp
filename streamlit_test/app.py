@@ -99,7 +99,7 @@ def run_streamlit_app():
                     return
 
                 st.success("Processing complete!")
-
+                
                 if os.path.exists(final_path):
                     st.subheader("Annotated output video")
                     with open(final_path, "rb") as f:
