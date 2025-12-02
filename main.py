@@ -14,19 +14,7 @@ def run_pipeline(
     output_video_path: str = 'output_videos/output_video_final.mp4',
     use_stubs: bool = True,
 ):
-    """
-    Run the full tracking / analysis pipeline.
 
-    Parameters
-    ----------
-    input_video_path : str
-        Path to the input video.
-    output_video_path : str
-        Path where the annotated output video will be written.
-    use_stubs : bool
-        If True, uses pre-computed stubs (fast, but only valid for the sample video).
-        If False, runs the full model pipeline on the given video.
-    """
     video_frames = read_video(input_video_path)
 
     tracker = Tracker('models/weights/best.pt')
@@ -49,7 +37,7 @@ def run_pipeline(
         tracks, camera_movement_per_frame
     )
 
-    # Use the new keypoint-based view transformer, seeded with the first frame
+
     view_transformer = ViewTransformer(reference_frame=video_frames[0], use_keypoint_model=True)
     view_transformer.add_transformed_position_to_tracks(tracks)
 
@@ -103,7 +91,7 @@ def run_pipeline(
 
 
 def main():
-    # Default CLI entrypoint: keep existing behaviour
+    
     run_pipeline(
         input_video_path='inputs/video1.mp4',
         output_video_path='output_videos/output_video_final.mp4',

@@ -5,8 +5,7 @@ from pathlib import Path
 
 import streamlit as st
 
-# Ensure the project root is on sys.path so we can import main.py when running
-# "streamlit run streamlit_test/app.py" from anywhere.
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -42,7 +41,7 @@ def run_streamlit_app():
 
         if st.button("Run analysis"):
             with st.spinner("Processing video, this may take a while..."):
-                # Save upload to a temporary file under inputs/
+               
                 inputs_dir = os.path.join(os.getcwd(), "inputs")
                 os.makedirs(inputs_dir, exist_ok=True)
 
@@ -52,7 +51,7 @@ def run_streamlit_app():
                     tmp_in.write(uploaded_file.read())
                     input_path = tmp_in.name
 
-                # Choose an output path under output_videos/
+                
                 outputs_dir = os.path.join(os.getcwd(), "output_videos")
                 os.makedirs(outputs_dir, exist_ok=True)
                 output_path = os.path.join(outputs_dir, "streamlit_output.mp4")
@@ -69,7 +68,7 @@ def run_streamlit_app():
 
                 st.success("Processing complete!")
 
-                # Display result and provide download
+                
                 if os.path.exists(final_path):
                     st.subheader("Annotated output video")
                     with open(final_path, "rb") as f:
