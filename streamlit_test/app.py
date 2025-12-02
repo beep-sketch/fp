@@ -22,6 +22,19 @@ def run_streamlit_app():
         "pipeline and generate an annotated output video."
     )
 
+    # Initialize session state for tracking temp files
+    if 'temp_files' not in st.session_state:
+        st.session_state.temp_files = []
+
+    # Clean up old temp files from previous runs
+    for temp_file in st.session_state.temp_files:
+        if os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+            except Exception:
+                pass  # Ignore errors if file is already deleted
+    st.session_state.temp_files = []
+
     st.sidebar.header("Settings")
     use_stubs = st.sidebar.checkbox(
         "Use precomputed stubs (fast, only works for sample video)",
@@ -41,20 +54,20 @@ def run_streamlit_app():
 
         if st.button("Run analysis"):
             with st.spinner("Processing video, this may take a while..."):
-               
-                inputs_dir = os.path.join(os.getcwd(), "inputs")
-                os.makedirs(inputs_dir, exist_ok=True)
-
+                # Use a temporary file in system temp directory (not project directory)
                 with tempfile.NamedTemporaryFile(
-                    dir=inputs_dir, suffix=".mp4", delete=False
+                    suffix=".mp4", delete=False
                 ) as tmp_in:
                     tmp_in.write(uploaded_file.read())
                     input_path = tmp_in.name
+                    st.session_state.temp_files.append(input_path)
 
-                
-                outputs_dir = os.path.join(os.getcwd(), "output_videos")
-                os.makedirs(outputs_dir, exist_ok=True)
-                output_path = os.path.join(outputs_dir, "streamlit_output.mp4")
+                # Use a temporary file for output as well
+                with tempfile.NamedTemporaryFile(
+                    suffix=".mp4", delete=False
+                ) as tmp_out:
+                    output_path = tmp_out.name
+                    st.session_state.temp_files.append(output_path)
 
                 try:
                     final_path = run_pipeline(
@@ -62,13 +75,31 @@ def run_streamlit_app():
                         output_video_path=output_path,
                         use_stubs=use_stubs,
                     )
+                    
+                    # Clean up the temporary input file immediately after processing
+                    if os.path.exists(input_path):
+                        try:
+                            os.remove(input_path)
+                            if input_path in st.session_state.temp_files:
+                                st.session_state.temp_files.remove(input_path)
+                        except Exception:
+                            pass
+                            
                 except Exception as e:
+                    # Clean up temp files even if there's an error
+                    for temp_file in [input_path, output_path]:
+                        if os.path.exists(temp_file):
+                            try:
+                                os.remove(temp_file)
+                                if temp_file in st.session_state.temp_files:
+                                    st.session_state.temp_files.remove(temp_file)
+                            except Exception:
+                                pass
                     st.error(f"Error while running pipeline: {e}")
                     return
 
                 st.success("Processing complete!")
 
-                
                 if os.path.exists(final_path):
                     st.subheader("Annotated output video")
                     with open(final_path, "rb") as f:
@@ -78,9 +109,10 @@ def run_streamlit_app():
                     st.download_button(
                         label="Download output video",
                         data=video_bytes,
-                        file_name=os.path.basename(final_path),
+                        file_name="output_video.mp4",
                         mime="video/mp4",
                     )
+                    # Output file will be cleaned up on next run or session end
                 else:
                     st.warning("Output video was not found. Please check the logs.")
 
