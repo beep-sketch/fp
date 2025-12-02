@@ -7,6 +7,12 @@ from team_assignment import TeamAssigner
 from camera_movement import CameraMovementEstimator
 from viewtransformer import ViewTransformer
 from speed_and_distance_etimator import Speed_and_Distance_Estimator
+from pathlib import Path
+import os
+
+
+# Get project root directory
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def run_pipeline(
@@ -14,24 +20,32 @@ def run_pipeline(
     output_video_path: str = 'output_videos/output_video_final.mp4',
     use_stubs: bool = True,
 ):
+    # Convert relative paths to absolute paths based on project root
+    if not os.path.isabs(input_video_path):
+        input_video_path = str(PROJECT_ROOT / input_video_path)
+    if not os.path.isabs(output_video_path):
+        output_video_path = str(PROJECT_ROOT / output_video_path)
 
     video_frames = read_video(input_video_path)
 
-    tracker = Tracker('models/weights/best.pt')
+    model_path = str(PROJECT_ROOT / 'models/weights/best.pt')
+    tracker = Tracker(model_path)
+    stub_path = str(PROJECT_ROOT / 'stubs/track_stubs.pkl')
     tracks = tracker.get_object_tracks(
         video_frames,
         read_from_stub=use_stubs,
-        stub_path='stubs/track_stubs.pkl',
+        stub_path=stub_path,
     )
     tracker.add_position_to_tracks(tracks)
 
     tracks['ball'] = tracker.interpolate_ball_positions(tracks['ball'])
 
     camera_movement_estimator = CameraMovementEstimator(video_frames[0])
+    camera_movement_stub_path = str(PROJECT_ROOT / 'stubs/camera_movement.pkl')
     camera_movement_per_frame = camera_movement_estimator.get_camera_movement(
         video_frames,
         read_from_stub=use_stubs,
-        stub_path='stubs/camera_movement.pkl',
+        stub_path=camera_movement_stub_path,
     )
     camera_movement_estimator.add_adjust_positions_to_tracks(
         tracks, camera_movement_per_frame
