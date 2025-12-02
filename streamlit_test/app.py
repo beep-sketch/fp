@@ -70,6 +70,9 @@ class OpenCVHeadlessHook:
 # Register hook
 sys.meta_path.insert(0, OpenCVHeadlessHook())
 
+# Note: cv2 will be imported when we import main below
+# The import hook and cleanup above should ensure headless version is used
+
 import streamlit as st
 
 

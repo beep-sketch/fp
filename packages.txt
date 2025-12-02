@@ -1,0 +1,5 @@
+# System packages for Streamlit Cloud
+# These are required for opencv-python-headless to work properly
+libgl1-mesa-glx
+libglib2.0-0
+
