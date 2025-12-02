@@ -6,45 +6,69 @@ from pathlib import Path
 
 # CRITICAL FIX for Streamlit Cloud: Ensure opencv-python-headless is used
 # This must happen BEFORE any cv2 imports to prevent libGL.so.1 errors
+
+# Remove cv2 from sys.modules if it exists
 if 'cv2' in sys.modules:
     del sys.modules['cv2']
 
-# Try to uninstall opencv-python if it exists (it conflicts with headless version)
+# Aggressively remove opencv-python and ensure headless is available
 try:
+    # Uninstall opencv-python (this is the problematic package)
     result = subprocess.run(
         [sys.executable, '-m', 'pip', 'uninstall', '-y', 'opencv-python', '--quiet'],
         capture_output=True,
-        timeout=10,
+        timeout=20,
         check=False
     )
-    if result.returncode == 0 and 'cv2' in sys.modules:
+    
+    # Ensure opencv-python-headless is installed
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '--upgrade', '--force-reinstall', 
+         'opencv-python-headless>=4.8.0', '--quiet'],
+        capture_output=True,
+        timeout=90,
+        check=False
+    )
+    
+    # Clear import caches
+    if 'cv2' in sys.modules:
         del sys.modules['cv2']
+    import importlib
+    importlib.invalidate_caches()
+    
+    # Remove opencv-python from site-packages if it still exists
+    import site
+    for site_packages in site.getsitepackages():
+        opencv_python_path = os.path.join(site_packages, 'opencv_python-')
+        if os.path.exists(opencv_python_path):
+            # Try to remove the directory
+            try:
+                import shutil
+                for item in os.listdir(site_packages):
+                    if item.startswith('opencv_python-') and not item.startswith('opencv_python_headless-'):
+                        item_path = os.path.join(site_packages, item)
+                        if os.path.isdir(item_path):
+                            shutil.rmtree(item_path, ignore_errors=True)
+            except Exception:
+                pass
 except Exception:
-    pass  # Ignore errors, continue
+    pass  # Continue even if cleanup fails
 
-# Install import hook to intercept cv2 imports and ensure headless version
-class OpenCVImportHook:
-    """Import hook to ensure opencv-python-headless is used instead of opencv-python."""
+# Create import hook to intercept cv2 imports
+class OpenCVHeadlessHook:
+    """Force use of opencv-python-headless."""
     
     def find_spec(self, name, path, target=None):
         if name == 'cv2':
-            # Clear cv2 from sys.modules to force reimport
+            # Clear cv2 from cache
             if 'cv2' in sys.modules:
                 del sys.modules['cv2']
-            # Try to uninstall opencv-python one more time
-            try:
-                subprocess.run(
-                    [sys.executable, '-m', 'pip', 'uninstall', '-y', 'opencv-python', '--quiet'],
-                    capture_output=True,
-                    timeout=5,
-                    check=False
-                )
-            except Exception:
-                pass
+            # Return None to let Python find the module normally
+            # (but we've ensured only headless is available)
         return None
 
-# Register the import hook
-sys.meta_path.insert(0, OpenCVImportHook())
+# Register hook
+sys.meta_path.insert(0, OpenCVHeadlessHook())
 
 import streamlit as st
 
