@@ -1,3 +1,7 @@
+# CRITICAL: Import opencv_fix FIRST to ensure headless version is used
+# This must happen before any other imports that might use cv2
+import opencv_fix  # noqa: F401
+
 import os
 import sys
 import tempfile
